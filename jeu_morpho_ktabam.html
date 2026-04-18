@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ניתוח מורפולוגי · כטב"ם</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a12">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Hebrew:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a12;
+  --surface:#12121e;
+  --surface2:#1a1a2e;
+  --border:rgba(100,180,255,.12);
+  --gold:#f0c040;
+  --gold2:#ffd966;
+  --blue:#4ab3ff;
+  --blue2:#1e7fc4;
+  --green:#50e89a;
+  --red:#ff5e6c;
+  --orange:#ff9a3c;
+  --purple:#b57bff;
+  --text:#e8e4f0;
+  --text2:#9090b8;
+  --text3:#5a5a7a;
+  --shadow:rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);color:var(--text)}
+body{font-family:'Space Mono',monospace;overflow-x:hidden}
+
+/* Animated grid background */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(74,179,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(74,179,255,.04) 1px,transparent 1px);
+  background-size:40px 40px;
+  animation:gridMove 20s linear infinite;
+  pointer-events:none;z-index:0
+}
+@keyframes gridMove{from{background-position:0 0}to{background-position:40px 40px}}
+
+body::after{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse at 20% 20%,rgba(74,179,255,.07) 0%,transparent 55%),
+    radial-gradient(ellipse at 80% 80%,rgba(181,123,255,.06) 0%,transparent 55%);
+  pointer-events:none;z-index:0
+}
+
+.wrap{position:relative;z-index:1;max-width:660px;margin:0 auto;padding:24px 16px 100px}
+
+/* ══ HEADER ══ */
+.app-header{text-align:center;margin-bottom:32px;padding-top:8px}
+.drone-icon{font-size:48px;display:block;margin-bottom:8px;
+  animation:float 3s ease-in-out infinite;filter:drop-shadow(0 0 16px rgba(74,179,255,.5))}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+.app-title{font-family:'DM Serif Display',serif;font-size:38px;font-style:italic;
+  color:var(--gold);line-height:1.1;direction:rtl;
+  text-shadow:0 0 30px rgba(240,192,64,.3)}
+.app-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text2);
+  margin-top:6px;direction:ltr}
+.app-author{font-size:13px;color:var(--text3);margin-top:4px;font-style:italic}
+.scanline{height:1px;background:linear-gradient(90deg,transparent,var(--blue),var(--gold),transparent);
+  margin:14px auto;width:200px;opacity:.5}
+
+/* ══ TABS ══ */
+.tabs{display:flex;gap:4px;background:var(--surface);border-radius:12px;padding:4px;
+  border:1px solid var(--border);margin-bottom:20px}
+.tab{flex:1;padding:9px 4px;border:none;border-radius:9px;cursor:pointer;
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.5px;
+  color:var(--text2);background:transparent;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+.tab .t-icon{font-size:18px}
+.tab.active{background:rgba(74,179,255,.15);color:var(--blue);
+  border:1px solid rgba(74,179,255,.3);box-shadow:0 0 12px rgba(74,179,255,.1)}
+.tab:hover:not(.active){background:rgba(255,255,255,.04);color:var(--text)}
+
+/* ══ CARD ══ */
+.card{background:var(--surface);border-radius:16px;padding:22px 20px;
+  border:1px solid var(--border);margin-bottom:14px;
+  box-shadow:0 8px 32px var(--shadow)}
+.card h3{font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--blue);margin-bottom:14px}
+
+/* ══ SCORE BAR ══ */
+.score-bar{display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);border-radius:12px;padding:10px 16px;
+  border:1px solid var(--border);margin-bottom:14px}
+.sp-score{font-size:24px;font-weight:700;color:var(--gold);line-height:1}
+.sp-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:2px}
+.prog-wrap{width:100px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--gold));
+  border-radius:2px;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.sp-num{font-size:11px;color:var(--text3);margin-top:4px;text-align:center}
+.streak-pill{background:rgba(240,192,64,.12);border:1px solid rgba(240,192,64,.3);
+  color:var(--gold);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:700}
+
+/* ══ CAT BADGE ══ */
+.cat-badge{display:inline-flex;align-items:center;gap:6px;border-radius:6px;
+  padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:12px;border:1px solid currentColor;
+  opacity:.85}
+
+/* ══ Q-CARD ══ */
+.q-card{background:var(--surface);border-radius:18px;
+  padding:28px 22px 22px;
+  border:1px solid var(--border);
+  box-shadow:0 12px 40px var(--shadow);
+  margin-bottom:14px;
+  transition:background .3s,border-color .3s;
+  animation:cardIn .35s cubic-bezier(.22,1,.36,1)}
+.q-card.correct{background:rgba(80,232,154,.06);border-color:rgba(80,232,154,.4)}
+.q-card.wrong{background:rgba(255,94,108,.06);border-color:rgba(255,94,108,.4)}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.q-num{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+
+/* Word display */
+.heb-main{font-family:'Noto Serif Hebrew',serif;font-size:48px;font-weight:900;
+  direction:rtl;text-align:center;line-height:1.2;color:var(--gold);
+  text-shadow:0 0 20px rgba(240,192,64,.25);margin-bottom:4px}
+.heb-niqqud{font-family:'Noto Serif Hebrew',serif;font-size:18px;
+  direction:rtl;text-align:center;color:var(--text2);margin-bottom:6px;font-style:italic}
+.heb-context{font-family:'Noto Serif Hebrew',serif;font-size:14px;
+  direction:rtl;text-align:center;color:var(--text3);margin-bottom:16px;
+  font-style:italic;padding:8px 12px;background:rgba(255,255,255,.03);
+  border-radius:8px;border-right:2px solid var(--gold);line-height:1.6}
+
+/* Morpho table */
+.morpho-proposed{margin-bottom:16px}
+.morpho-table{width:100%;border-collapse:collapse;font-size:13px}
+.morpho-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text3);padding:6px 8px;border-bottom:1px solid var(--border);
+  text-align:right;font-weight:400}
+.morpho-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);
+  color:var(--text);direction:rtl}
+.morpho-table td.label{color:var(--text2);font-size:11px;width:35%}
+.morpho-table td.val{font-weight:700;color:var(--text)}
+.morpho-table td.val.highlight{color:var(--blue)}
+.morpho-claim{display:inline-block;background:rgba(74,179,255,.1);
+  border:1px solid rgba(74,179,255,.3);color:var(--blue);
+  border-radius:6px;padding:2px 10px;font-size:12px;margin-top:2px}
+.morpho-claim.wrong-c{background:rgba(255,94,108,.1);border-color:rgba(255,94,108,.3);color:var(--red)}
+
+/* FR zone */
+.fr-zone{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.fr-proposed{font-family:'DM Serif Display',serif;font-size:20px;font-style:italic;
+  color:var(--text);flex:1;padding:10px 14px;
+  background:rgba(240,192,64,.05);border-radius:10px;
+  border-right:2px solid var(--gold);direction:ltr;transition:all .3s}
+.fr-proposed.hidden{filter:blur(7px);opacity:.3;user-select:none}
+.toggle-btn{background:rgba(255,255,255,.06);border:1px solid var(--border);
+  color:var(--text2);border-radius:8px;padding:8px 10px;cursor:pointer;
+  font-size:16px;transition:all .2s;min-width:40px;min-height:40px}
+.toggle-btn:hover{background:rgba(255,255,255,.1);color:var(--text)}
+
+/* Audio */
+.audio-btn{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(74,179,255,.08);border:1px solid rgba(74,179,255,.25);
+  color:var(--blue);border-radius:20px;padding:5px 14px;
+  cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;
+  transition:all .2s;margin-bottom:12px}
+.audio-btn:hover{background:rgba(74,179,255,.15);transform:translateY(-1px)}
+.audio-btn.playing{background:rgba(181,123,255,.1);border-color:var(--purple);color:var(--purple)}
+
+/* Feedback */
+.feedback{margin-top:14px;font-size:14px;font-weight:700;
+  animation:fadeUp .3s ease;display:none;line-height:1.6;
+  padding:10px 14px;border-radius:10px}
+.feedback.correct{color:var(--green);background:rgba(80,232,154,.08);border:1px solid rgba(80,232,154,.2)}
+.feedback.wrong{color:var(--red);background:rgba(255,94,108,.08);border:1px solid rgba(255,94,108,.2)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* ══ VF BUTTONS ══ */
+.btn-row{display:flex;gap:10px;margin-bottom:10px}
+.ans-btn{flex:1;padding:17px 8px;border:none;border-radius:14px;
+  cursor:pointer;font-family:'Space Mono',monospace;font-weight:700;font-size:14px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  transition:all .2s;border:2px solid transparent}
+.ans-btn:hover:not(:disabled){transform:translateY(-3px)}
+.ans-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.ans-btn .icon{font-size:24px;line-height:1}
+.btn-false{background:rgba(255,94,108,.12);border-color:rgba(255,94,108,.3);color:var(--red)}
+.btn-false:hover:not(:disabled){background:rgba(255,94,108,.2);border-color:var(--red);box-shadow:0 0 20px rgba(255,94,108,.2)}
+.btn-true{background:rgba(80,232,154,.12);border-color:rgba(80,232,154,.3);color:var(--green)}
+.btn-true:hover:not(:disabled){background:rgba(80,232,154,.2);border-color:var(--green);box-shadow:0 0 20px rgba(80,232,154,.2)}
+
+/* ══ RECONSTITUER ══ */
+.recon-target{
+  min-height:56px;border:2px dashed rgba(74,179,255,.25);border-radius:12px;
+  padding:10px 12px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;
+  margin-bottom:12px;background:rgba(74,179,255,.03);
+  direction:rtl;transition:border-color .2s}
+.recon-target.has-tiles{border-style:solid;border-color:rgba(74,179,255,.4)}
+.recon-target .placeholder{font-size:11px;color:var(--text3);font-style:italic;letter-spacing:1px}
+.tiles-pool{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;direction:rtl}
+.tile{font-family:'Noto Serif Hebrew',serif;font-size:17px;font-weight:700;
+  padding:8px 15px;border-radius:8px;cursor:pointer;
+  background:var(--surface2);border:1.5px solid rgba(74,179,255,.2);
+  color:var(--text);transition:all .18s;user-select:none;direction:rtl}
+.tile:hover{transform:translateY(-2px);border-color:var(--blue);
+  box-shadow:0 4px 14px rgba(74,179,255,.15)}
+.tile.used{opacity:.25;pointer-events:none}
+.tile.placed{background:rgba(74,179,255,.12);border-color:rgba(74,179,255,.5);cursor:pointer}
+.recon-check{width:100%;padding:13px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--blue2),#0a3d6b);color:#fff;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;
+  letter-spacing:1px;text-transform:uppercase;
+  box-shadow:0 4px 16px rgba(30,127,196,.35);transition:all .2s;margin-bottom:10px}
+.recon-check:hover{transform:translateY(-2px);box-shadow:0 7px 20px rgba(30,127,196,.4)}
+.recon-check:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.recon-feedback{padding:11px 14px;border-radius:10px;font-size:14px;font-weight:700;
+  display:none;margin-bottom:10px;animation:fadeUp .3s ease}
+.recon-feedback.ok{background:rgba(80,232,154,.08);color:var(--green);border:1px solid rgba(80,232,154,.2)}
+.recon-feedback.ko{background:rgba(255,94,108,.08);color:var(--red);border:1px solid rgba(255,94,108,.2)}
+
+/* ══ FLASH ══ */
+.flash-card{
+  background:var(--surface);border-radius:18px;padding:36px 24px;text-align:center;
+  border:1px solid var(--border);box-shadow:0 12px 40px var(--shadow);
+  margin-bottom:16px;cursor:pointer;
+  transition:all .25s;animation:cardIn .35s cubic-bezier(.22,1,.36,1);
+  min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.flash-card:hover{transform:translateY(-3px);box-shadow:0 18px 50px var(--shadow),0 0 0 1px rgba(74,179,255,.2)}
+.flash-heb{font-family:'Noto Serif Hebrew',serif;font-size:50px;font-weight:900;
+  color:var(--gold);direction:rtl;line-height:1.2;text-shadow:0 0 20px rgba(240,192,64,.25)}
+.flash-niqqud{font-family:'Noto Serif Hebrew',serif;font-size:17px;color:var(--text2);
+  direction:rtl;margin-top:6px;font-style:italic}
+.flash-morpho{margin-top:14px;animation:fadeUp .3s ease;display:none;
+  background:var(--surface2);border-radius:10px;padding:14px;width:100%;text-align:right}
+.flash-morpho table{width:100%;font-size:13px}
+.flash-morpho td{padding:4px 6px;direction:rtl}
+.flash-morpho td:first-child{color:var(--text3);font-size:11px;letter-spacing:1px;width:40%}
+.flash-morpho td:last-child{color:var(--text);font-weight:700}
+.flash-fr{font-family:'DM Serif Display',serif;font-size:22px;font-style:italic;
+  color:var(--blue);margin-top:10px;display:none;animation:fadeUp .3s ease}
+.flash-hint{font-size:11px;color:var(--text3);margin-top:14px;letter-spacing:1px}
+.flash-nav{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.fnav-btn{padding:10px 20px;border:1px solid var(--border);
+  border-radius:10px;background:var(--surface);color:var(--text2);
+  cursor:pointer;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:1px;transition:all .2s;min-height:44px}
+.fnav-btn:hover{border-color:var(--blue);color:var(--blue)}
+.fnav-btn.primary{background:rgba(74,179,255,.12);border-color:rgba(74,179,255,.4);color:var(--blue)}
+.fnav-btn.primary:hover{background:rgba(74,179,255,.22)}
+
+/* ══ CAT GRID ══ */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px}
+.cat-sel{border-radius:10px;padding:10px 10px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;
+  transition:all .2s;font-family:'Space Mono',monospace;
+  border:1.5px solid var(--border);background:var(--surface2);color:var(--text3)}
+.cat-sel.on{color:var(--text)}
+.cat-sel:hover{transform:translateY(-1px)}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-name{font-size:11px;font-weight:700;direction:rtl;font-family:'Noto Serif Hebrew',serif}
+.cat-count{font-size:10px;opacity:.6;margin-right:auto}
+
+/* ══ BILAN ══ */
+.bilan-card{background:var(--surface);border-radius:18px;
+  padding:30px 22px;text-align:center;
+  box-shadow:0 12px 40px var(--shadow);border:1px solid var(--border);
+  margin-bottom:14px}
+.b-emoji{font-size:56px;margin-bottom:8px;line-height:1;
+  filter:drop-shadow(0 0 16px rgba(240,192,64,.4))}
+.b-title{font-family:'DM Serif Display',serif;font-size:26px;font-style:italic;
+  color:var(--gold);direction:rtl;margin-bottom:16px}
+.score-big{display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:6px}
+.sb-n{font-size:68px;font-weight:700;color:var(--blue);line-height:1}
+.sb-sl{font-size:36px;color:var(--text3)}.sb-t{font-size:36px;color:var(--text3)}
+.pct-pill{display:inline-block;background:linear-gradient(135deg,var(--gold2),var(--orange));
+  color:#111;border-radius:20px;padding:4px 20px;font-size:17px;font-weight:700;
+  margin-bottom:18px;box-shadow:0 3px 10px rgba(240,192,64,.3)}
+.bilan-stats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.b-stat{background:var(--surface2);border-radius:10px;padding:10px 14px;
+  font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:2px;
+  border:1px solid var(--border)}
+.b-stat strong{color:var(--gold);font-size:17px}
+.mistakes-box{background:rgba(255,94,108,.05);border-radius:12px;padding:14px;
+  margin-bottom:16px;border:1px solid rgba(255,94,108,.15);
+  text-align:right;max-height:220px;overflow-y:auto}
+.m-title{font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px;
+  letter-spacing:2px;text-transform:uppercase}
+.m-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.m-row:last-child{border-bottom:none}
+.m-heb{font-family:'Noto Serif Hebrew',serif;font-weight:700;direction:rtl;
+  color:var(--text);min-width:80px;text-align:right;font-size:16px}
+.m-arr{color:var(--text3);font-size:11px}
+.m-fr{color:var(--green);font-style:italic;font-weight:700;flex:1;text-align:left;font-size:12px}
+.bilan-btns{display:flex;gap:10px}
+.b-replay{flex:1;padding:13px;background:linear-gradient(135deg,var(--blue2),#0a3d6b);
+  color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:1px;transition:transform .15s}
+.b-replay:hover{transform:translateY(-2px)}
+.b-home{flex:1;padding:13px;background:var(--surface2);color:var(--text);
+  border:1px solid var(--border);border-radius:12px;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;
+  letter-spacing:1px;transition:transform .15s}
+.b-home:hover{transform:translateY(-2px)}
+
+/* ══ MISC ══ */
+.screen{display:none}
+.screen.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.start-btn{width:100%;padding:14px;
+  background:linear-gradient(135deg,rgba(74,179,255,.15),rgba(74,179,255,.05));
+  color:var(--blue);border:1.5px solid rgba(74,179,255,.4);
+  border-radius:12px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:'Space Mono',monospace;
+  letter-spacing:2px;text-transform:uppercase;
+  transition:all .2s;margin-bottom:12px;
+  box-shadow:0 0 20px rgba(74,179,255,.1)}
+.start-btn:hover{background:rgba(74,179,255,.2);box-shadow:0 0 30px rgba(74,179,255,.2);transform:translateY(-1px)}
+.start-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.rules{background:rgba(240,192,64,.05);border-right:2px solid var(--gold);
+  border-radius:0 10px 10px 0;padding:11px 14px;
+  font-size:12px;color:var(--text2);line-height:1.8;direction:rtl}
+.rules b{color:var(--gold)}
+.info-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{background:var(--surface2);border-radius:20px;padding:3px 10px;
+  font-size:10px;color:var(--text2);border:1px solid var(--border);
+  font-weight:700;letter-spacing:1px}
+.quit-btn{background:transparent;border:1px solid var(--border);color:var(--text3);
+  cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;
+  padding:7px 16px;border-radius:8px;transition:all .2s;display:block;margin:8px auto 0;
+  letter-spacing:1px}
+.quit-btn:hover{color:var(--text);border-color:var(--text3)}
+
+/* Chart */
+.chart-wrap{background:var(--surface);border-radius:12px;padding:16px;
+  border:1px solid var(--border);margin-bottom:14px}
+.chart-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.chart-empty{font-size:12px;color:var(--text3);text-align:center;padding:16px 0;font-style:italic}
+.mistakes-box::-webkit-scrollbar{width:3px}
+.mistakes-box::-webkit-scrollbar-thumb{background:rgba(255,94,108,.3);border-radius:2px}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;
+  background:rgba(10,10,18,.95);border-top:1px solid var(--border);
+  display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom);z-index:100;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.bnav-btn{flex:1;padding:10px 4px 8px;border:none;background:transparent;
+  font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;
+  color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;transition:color .2s;-webkit-tap-highlight-color:transparent}
+.bnav-btn .bn-icon{font-size:20px;line-height:1}
+.bnav-btn.active{color:var(--gold)}
+.bnav-sep{width:1px;background:var(--border);margin:8px 0}
+
+/* Mobile */
+html{-webkit-text-size-adjust:100%}
+*{-webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation;cursor:pointer}
+.wrap{padding:max(20px,env(safe-area-inset-top)) 16px max(90px,calc(env(safe-area-inset-bottom)+70px))}
+@media(max-width:400px){
+  .app-title{font-size:30px}
+  .heb-main{font-size:38px}
+  .flash-heb{font-size:40px}
+  .sb-n{font-size:54px}
+}
+@media(min-width:768px){
+  .heb-main{font-size:54px}
+  .flash-heb{font-size:56px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══ HOME ══ -->
+<div id="s-home" class="screen active">
+  <div class="app-header">
+    <span class="drone-icon">🚁</span>
+    <div class="app-title">ניתוח מורפולוגי</div>
+    <div class="app-sub">Analyse morphologique · כטב״ם</div>
+    <div class="app-author">ניר קריגל — מילים ולחן</div>
+    <div class="scanline"></div>
+  </div>
+
+  <div class="card">
+    <h3>📂 קטגוריות · Catégories</h3>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button onclick="selectAllCats(true)"  style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;letter-spacing:1px">✓ הכל</button>
+      <button onclick="selectAllCats(false)" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;letter-spacing:1px">☐ נקה</button>
+    </div>
+    <div class="cat-grid" id="home-cat-grid"></div>
+    <div class="info-row">
+      <span class="chip" id="home-chip-count">— מילים</span>
+      <span class="chip">20 שאלות / סבב</span>
+    </div>
+
+    <h3 style="margin-bottom:10px">🎮 מצב משחק · Mode</h3>
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <button class="tab active" id="mode-vf"    onclick="setMode('vf')"    style="flex:1;border-radius:10px">
+        <span class="t-icon">✓✗</span><span style="font-size:9px;letter-spacing:1px">נכון/לא</span>
+      </button>
+      <button class="tab" id="mode-recon" onclick="setMode('recon')" style="flex:1;border-radius:10px">
+        <span class="t-icon">🔀</span><span style="font-size:9px;letter-spacing:1px">שחזור</span>
+      </button>
+      <button class="tab" id="mode-flash" onclick="setMode('flash')" style="flex:1;border-radius:10px">
+        <span class="t-icon">🃏</span><span style="font-size:9px;letter-spacing:1px">כרטיסים</span>
+      </button>
+    </div>
+
+    <button class="start-btn" id="start-btn" onclick="startGame()">▶ התחל · COMMENCER</button>
+    <div class="rules" id="home-rules">
+      <b>נכון/לא נכון:</b> מילה מהשיר מוצגת עם ניתוח מורפולוגי — אמת או שקר?
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-lbl">📈 התקדמות · Progression</div>
+    <canvas id="chart-home" height="120"></canvas>
+    <div class="chart-empty" id="chart-empty-home">אין היסטוריה עדיין.</div>
+  </div>
+</div>
+
+<!-- ══ VF ══ -->
+<div id="s-vf" class="screen">
+  <div class="score-bar">
+    <div>
+      <div class="sp-score" id="vf-pct">—</div>
+      <div class="sp-label">Score %</div>
+    </div>
+    <div>
+      <div class="prog-wrap"><div class="prog-fill" id="vf-prog" style="width:0%"></div></div>
+      <div class="sp-num" id="vf-num">0 / 20</div>
+    </div>
+    <div class="streak-pill" id="vf-streak">🔥 0</div>
+  </div>
+
+  <div class="cat-badge" id="vf-badge">—</div>
+
+  <div class="q-card" id="vf-card">
+    <div class="q-num" id="vf-qnum">שאלה 1 / 20</div>
+    <div style="display:flex;flex-direction:column;align-items:center">
+      <div class="heb-main" id="vf-heb">—</div>
+      <div class="heb-niqqud" id="vf-niqqud"></div>
+      <div class="heb-context" id="vf-context" style="display:none"></div>
+      <button class="audio-btn" id="vf-audio" onclick="speakHeb('vf')">
+        <span id="vf-audio-icon">🔊</span> האזן
+      </button>
+    </div>
+
+    <div class="morpho-proposed">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px">ניתוח מוצע · Analyse proposée :</div>
+      <table class="morpho-table">
+        <tr><td class="label">חלק דיבר</td><td class="val" id="vf-pos">—</td></tr>
+        <tr><td class="label">שורש</td><td class="val" id="vf-root">—</td></tr>
+        <tr><td class="label">בניין / סוג</td><td class="val" id="vf-binyan">—</td></tr>
+        <tr><td class="label">זמן / גוף</td><td class="val" id="vf-tense">—</td></tr>
+      </table>
+    </div>
+
+    <div class="fr-zone">
+      <div style="font-size:9px;letter-spacing:2px;color:var(--text3);flex-shrink:0">תרגום</div>
+      <div class="fr-proposed hidden" id="vf-fr">—</div>
+      <button class="toggle-btn" onclick="toggleFr('vf-fr','vf-tog')" id="vf-tog">👁</button>
+    </div>
+
+    <div class="feedback" id="vf-feedback"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="ans-btn btn-false" id="vf-btn-f" onclick="answerVF(false)">
+      <span class="icon">✗</span><span>שֶׁקֶר</span><span style="font-size:9px;letter-spacing:1px">FAUX</span>
+    </button>
+    <button class="ans-btn btn-true" id="vf-btn-t" onclick="answerVF(true)">
+      <span class="icon">✓</span><span>אֱמֶת</span><span style="font-size:9px;letter-spacing:1px">VRAI</span>
+    </button>
+  </div>
+  <button class="quit-btn" onclick="endAndBilan()">↩ סיים וסיכום</button>
+</div>
+
+<!-- ══ RECON ══ -->
+<div id="s-recon" class="screen">
+  <div class="score-bar">
+    <div>
+      <div id="rc-pct" style="font-size:24px;font-weight:700;color:var(--gold);line-height:1">—</div>
+      <div class="sp-label">Score %</div>
+    </div>
+    <div>
+      <div class="prog-wrap"><div class="prog-fill" id="rc-prog" style="width:0%"></div></div>
+      <div class="sp-num" id="rc-num">0 / 10</div>
+    </div>
+    <div class="streak-pill" id="rc-streak">🔥 0</div>
+  </div>
+
+  <div class="cat-badge" id="rc-badge">—</div>
+
+  <div style="background:var(--surface);border-radius:16px;padding:24px 20px 18px;
+    border:1px solid var(--border);box-shadow:0 12px 40px var(--shadow);margin-bottom:14px">
+    <div class="q-num" id="rc-qnum">ביטוי 1 / 10</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:19px;font-style:italic;color:var(--text);margin-bottom:6px;direction:ltr" id="rc-fr-sent">—</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px;letter-spacing:1px">→ שחזר את הפסוק בעברית :</div>
+    <div class="recon-target" id="rc-drop">
+      <span class="placeholder">לחץ על הרצועות לבניית המשפט ←</span>
+    </div>
+    <div class="tiles-pool" id="rc-pool"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <button class="audio-btn" id="rc-audio" onclick="speakHeb('rc')">
+        <span id="rc-audio-icon">🔊</span> שמע תשובה
+      </button>
+      <button class="toggle-btn" onclick="toggleFr('rc-answer-reveal','rc-tog')" id="rc-tog" title="גלה">👁</button>
+      <span style="font-size:10px;color:var(--text3);letter-spacing:1px">תשובה</span>
+    </div>
+    <div class="fr-proposed hidden" id="rc-answer-reveal" style="margin-bottom:10px;direction:rtl;font-family:'Noto Serif Hebrew',serif;font-size:18px">—</div>
+    <div class="recon-feedback" id="rc-feedback"></div>
+    <button class="recon-check" id="rc-check" onclick="checkRecon()">✓ בדוק · VÉRIFIER</button>
+  </div>
+  <button class="quit-btn" onclick="endAndBilan()">↩ סיים וסיכום</button>
+</div>
+
+<!-- ══ FLASH ══ -->
+<div id="s-flash" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:11px;color:var(--text3);letter-spacing:2px" id="fl-counter">1 / 20</div>
+    <div class="cat-badge" id="fl-badge" style="margin-bottom:0">—</div>
+  </div>
+  <div class="flash-card" id="fl-card" onclick="flipFlash()">
+    <div class="flash-heb" id="fl-heb">—</div>
+    <div class="flash-niqqud" id="fl-niqqud"></div>
+    <button class="audio-btn" style="margin-top:12px" id="fl-audio" onclick="event.stopPropagation();speakHeb('fl')">
+      <span id="fl-audio-icon">🔊</span> האזן
+    </button>
+    <div class="flash-morpho" id="fl-morpho">
+      <table>
+        <tr><td>חלק דיבר</td><td id="fl-pos">—</td></tr>
+        <tr><td>שורש</td><td id="fl-root">—</td></tr>
+        <tr><td>בניין / סוג</td><td id="fl-binyan">—</td></tr>
+        <tr><td>זמן / גוף</td><td id="fl-tense">—</td></tr>
+      </table>
+    </div>
+    <div class="flash-fr" id="fl-fr"></div>
+    <div class="flash-hint" id="fl-hint">לחץ לגילוי הניתוח · Cliquer pour révéler</div>
+  </div>
+  <div class="flash-nav">
+    <button class="fnav-btn" onclick="flashPrev()">‹ הקודם</button>
+    <button class="fnav-btn primary" onclick="flipFlash()">👁 גלה</button>
+    <button class="fnav-btn" onclick="flashNext()">הבא ›</button>
+  </div>
+  <button class="quit-btn" onclick="goHome()">← בית</button>
+</div>
+
+<!-- ══ BILAN ══ -->
+<div id="s-bilan" class="screen">
+  <div class="bilan-card">
+    <div class="b-emoji" id="b-emoji">🏆</div>
+    <div class="b-title" id="b-title">מְצוּיָן !</div>
+    <div class="score-big">
+      <span class="sb-n" id="b-score">0</span>
+      <span class="sb-sl">/</span>
+      <span class="sb-t" id="b-tot">0</span>
+    </div>
+    <div class="pct-pill" id="b-pct">0%</div>
+    <div class="bilan-stats">
+      <div class="b-stat"><span>🔥 רצף מקס׳</span><strong id="b-streak">0</strong></div>
+      <div class="b-stat"><span>❌ שגיאות</span><strong id="b-err">0</strong></div>
+      <div class="b-stat"><span>📊 סבבים</span><strong id="b-games">0</strong></div>
+    </div>
+    <div class="mistakes-box" id="b-mistakes" style="display:none">
+      <div class="m-title">לחזור על · À revoir :</div>
+      <div id="b-mistakes-list"></div>
+    </div>
+    <div class="chart-wrap" style="margin-bottom:16px">
+      <div class="chart-lbl">📈 התקדמות</div>
+      <canvas id="chart-bilan" height="100"></canvas>
+    </div>
+    <div class="bilan-btns">
+      <button class="b-replay" onclick="startGame()">🔄 שחק שוב</button>
+      <button class="b-home" onclick="goHome()">🏠 בית</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bnav-btn active" id="bnav-home" onclick="goHome();setBottomNav('home')">
+    <span class="bn-icon">🏠</span><span>בית</span>
+  </button>
+  <div class="bnav-sep"></div>
+  <button class="bnav-btn" id="bnav-vf" onclick="setModeAndStart('vf')">
+    <span class="bn-icon">✓✗</span><span>נכון/לא</span>
+  </button>
+  <div class="bnav-sep"></div>
+  <button class="bnav-btn" id="bnav-recon" onclick="setModeAndStart('recon')">
+    <span class="bn-icon">🔀</span><span>שחזור</span>
+  </button>
+  <div class="bnav-sep"></div>
+  <button class="bnav-btn" id="bnav-flash" onclick="setModeAndStart('flash')">
+    <span class="bn-icon">🃏</span><span>כרטיסים</span>
+  </button>
+</nav>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA — Analyse morphologique des mots-clés de כטב"ם
+// ═══════════════════════════════════════════════════════════
+const CATS = [
+  {id:"poel",   label:"פועל",        fr:"Verbes",        color:"#4ab3ff"},
+  {id:"shem",   label:"שם עצם",      fr:"Noms",          color:"#f0c040"},
+  {id:"toar",   label:"שם תואר",     fr:"Adjectifs",     color:"#50e89a"},
+  {id:"milat",  label:"מילת יחס",    fr:"Prépositions",  color:"#ff9a3c"},
+  {id:"bituy",  label:"ביטוי",       fr:"Expressions",   color:"#b57bff"},
+  {id:"shoresh",label:"שורש",        fr:"Racines",       color:"#ff5e6c"},
+];
+
+// Each entry: { heb, niqqud, fr, cat, pos, root, binyan, tense, context, altPos, altRoot, altBinyan, altTense }
+// In VF mode: a random claim from {pos, root, binyan, tense} is shown — true or false
+const DATA = [
+  // ══ POEL ══
+  {heb:"מתקשרים", niqqud:"מִתְקַשְּׁרִים", fr:"Ils/elles appellent / sont en contact",
+   cat:"poel", pos:"פועל", root:"ק-ש-ר", binyan:"הִתְפַּעֵל",  tense:"הווה רבים",
+   altPos:"שם עצם", altRoot:"ק-ש-ב", altBinyan:"פִּעֵל", altTense:"עבר יחיד",
+   context:"מתקשרים אליי שיחה, נו כבר, איפה אתה?"},
+  {heb:"טס",      niqqud:"טָס", fr:"Il vole",
+   cat:"poel", pos:"פועל", root:"ט-ו-ס", binyan:"פָּעַל",      tense:"הווה/עתיד יחיד זכר",
+   altPos:"שם תואר", altRoot:"ט-ס-ה", altBinyan:"פִּיעֵל", altTense:"עבר רבים",
+   context:"אני טס למעלה עד שאגיע לפסגה"},
+  {heb:"עפים",    niqqud:"עָפִים", fr:"Volent / s'envolent",
+   cat:"poel", pos:"פועל", root:"ע-פ-ה", binyan:"פָּעַל",      tense:"הווה רבים",
+   altPos:"שם תואר", altRoot:"ע-ו-ף", altBinyan:"הִפְעִיל", altTense:"עתיד יחיד",
+   context:"פרפרים הלבנים שוב עפים לאור"},
+  {heb:"לומד",    niqqud:"לוֹמֵד", fr:"J'apprends",
+   cat:"poel", pos:"פועל", root:"ל-מ-ד", binyan:"פָּעַל",      tense:"הווה יחיד זכר",
+   altPos:"שם עצם", altRoot:"ל-ד-ע", altBinyan:"פִּיעֵל", altTense:"עבר יחיד נקבה",
+   context:"ואני רק כל היום לומד לישון נכון"},
+  {heb:"אוהב",    niqqud:"אוֹהֵב", fr:"J'aime",
+   cat:"poel", pos:"פועל", root:"א-ה-ב", binyan:"פָּעַל",      tense:"הווה יחיד זכר",
+   altPos:"שם תואר", altRoot:"ה-ב-ה", altBinyan:"פִּיעֵל", altTense:"עבר רבים",
+   context:"אני אוהב אותו רק בזכות דבר אחד"},
+  {heb:"נשבר",    niqqud:"נִשְׁבָּר", fr:"Se brise / est brisé",
+   cat:"poel", pos:"פועל", root:"ש-ב-ר", binyan:"נִפְעַל",     tense:"הווה יחיד זכר",
+   altPos:"שם עצם", altRoot:"ש-ב-ל", altBinyan:"פָּעַל", altTense:"הווה רבים",
+   context:"אני אף פעם לא נשבר"},
+  {heb:"הדבקתי",  niqqud:"הִדְבַּקְתִּי", fr:"J'ai collé / recollé",
+   cat:"poel", pos:"פועל", root:"ד-ב-ק", binyan:"הִפְעִיל",    tense:"עבר יחיד גוף ראשון",
+   altPos:"שם עצם", altRoot:"ד-ב-ג", altBinyan:"פִּיעֵל", altTense:"עתיד יחיד",
+   context:"את הלב שלי הדבקתי"},
+  {heb:"שוחים",   niqqud:"שׁוֹחִים", fr:"Nagent",
+   cat:"poel", pos:"פועל", root:"ש-ח-ה", binyan:"פָּעַל",      tense:"הווה רבים",
+   altPos:"שם תואר", altRoot:"ש-ו-ח", altBinyan:"הִפְעִיל", altTense:"עבר יחיד",
+   context:"רק דגים מתים שוחים עם הזרם"},
+  {heb:"מרים",    niqqud:"מֵרִים", fr:"Je lève / élève",
+   cat:"poel", pos:"פועל", root:"ר-ו-מ", binyan:"הִפְעִיל",    tense:"הווה יחיד זכר",
+   altPos:"שם עצם", altRoot:"ר-מ-ה", altBinyan:"פָּעַל", altTense:"עתיד רבים",
+   context:"אני מרים את הרף"},
+  {heb:"לישון",   niqqud:"לִישׁוֹן", fr:"Dormir (infinitif)",
+   cat:"poel", pos:"פועל", root:"י-ש-נ", binyan:"פָּעַל (שם פועל)", tense:"שם פועל",
+   altPos:"שם עצם", altRoot:"ש-נ-ה", altBinyan:"פִּיעֵל", altTense:"עתיד",
+   context:"ואני רק כל היום לומד לישון נכון"},
+
+  // ══ SHEM ETZEM ══
+  {heb:"כטב\"ם",  niqqud:"כְּטָב\"ם", fr:"Drone (כלי טיס בלתי מאויש)",
+   cat:"shem", pos:"שם עצם", root:"ר-נ-ג (ראשי תיבות)", binyan:"ר\"ת (אקרונים)", tense:"לא רלוונטי",
+   altPos:"פועל", altRoot:"כ-ט-ב", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"זה כטב\"ם, בם, בם, בם"},
+  {heb:"שיר",     niqqud:"שִׁיר", fr:"Chanson",
+   cat:"shem", pos:"שם עצם", root:"ש-י-ר", binyan:"שם עצם זכר", tense:"יחיד",
+   altPos:"פועל", altRoot:"ש-ר-ה", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"איזה שיר בג'אז"},
+  {heb:"זרם",     niqqud:"זֶרֶם", fr:"Courant / flux",
+   cat:"shem", pos:"שם עצם", root:"ז-ר-מ", binyan:"שם עצם זכר", tense:"יחיד",
+   altPos:"פועל", altRoot:"ז-ר-ר", altBinyan:"פִּיעֵל", altTense:"עבר",
+   context:"רק דגים מתים שוחים עם הזרם"},
+  {heb:"פסגה",    niqqud:"פִּסְגָּה", fr:"Sommet / cime",
+   cat:"shem", pos:"שם עצם", root:"פ-ס-ג", binyan:"שם עצם נקבה", tense:"יחיד",
+   altPos:"שם תואר", altRoot:"פ-ג-ש", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"אני טס למעלה עד שאגיע לפסגה"},
+  {heb:"צלקת",    niqqud:"צֶלֶקֶת", fr:"Cicatrice",
+   cat:"shem", pos:"שם עצם", root:"צ-ל-ק", binyan:"שם עצם נקבה", tense:"יחיד",
+   altPos:"פועל", altRoot:"צ-ק-ל", altBinyan:"הִפְעִיל", altTense:"עבר",
+   context:"ותמיד תישאר הצלקת בנשמה"},
+  {heb:"נשמה",    niqqud:"נְשָׁמָה", fr:"Âme",
+   cat:"shem", pos:"שם עצם", root:"נ-ש-מ", binyan:"שם עצם נקבה", tense:"יחיד",
+   altPos:"שם תואר", altRoot:"נ-ש-ה", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"ותמיד תישאר הצלקת בנשמה"},
+  {heb:"ציפור",   niqqud:"צִפּוֹר", fr:"Oiseau",
+   cat:"shem", pos:"שם עצם", root:"צ-פ-ר", binyan:"שם עצם נקבה", tense:"יחיד",
+   altPos:"שם תואר", altRoot:"צ-פ-ה", altBinyan:"הִפְעִיל", altTense:"הווה",
+   context:"לא ציפור ולא מטוס"},
+  {heb:"מטוס",    niqqud:"מָטוֹס", fr:"Avion",
+   cat:"shem", pos:"שם עצם", root:"ט-ו-ס", binyan:"שם עצם זכר (מִשְׁקַל מָקְטוֹל)", tense:"יחיד",
+   altPos:"פועל", altRoot:"מ-ט-ס", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"לא ציפור ולא מטוס"},
+  {heb:"פרפרים",  niqqud:"פַּרְפָּרִים", fr:"Papillons",
+   cat:"shem", pos:"שם עצם", root:"פ-ר-פ-ר", binyan:"שם עצם זכר רבים", tense:"רבים",
+   altPos:"שם תואר", altRoot:"פ-ר-ה", altBinyan:"הִתְפַּעֵל", altTense:"הווה",
+   context:"פרפרים הלבנים שוב עפים לאור"},
+  {heb:"מלחמה",   niqqud:"מִלְחָמָה", fr:"Guerre",
+   cat:"shem", pos:"שם עצם", root:"ל-ח-מ", binyan:"שם עצם נקבה (מִשְׁקַל מִקְטָלָה)", tense:"יחיד",
+   altPos:"פועל", altRoot:"מ-ל-ח", altBinyan:"פִּיעֵל", altTense:"עבר",
+   context:"נגמרה המלחמה ואין לנו ברירה"},
+
+  // ══ TOAR ══
+  {heb:"חופשיה",  niqqud:"חׇפְשִׁיָּה", fr:"Libre (féminin)",
+   cat:"toar", pos:"שם תואר", root:"ח-פ-ש", binyan:"גזירת שם תואר", tense:"נקבה יחידה",
+   altPos:"שם עצם", altRoot:"ח-פ-ז", altBinyan:"פָּעַל", altTense:"עבר",
+   context:"אבל אני יותר בקטע של ציפור חופשיה"},
+  {heb:"לבנים",   niqqud:"לְבָנִים", fr:"Blancs",
+   cat:"toar", pos:"שם תואר", root:"ל-ב-נ", binyan:"גזירת שם תואר", tense:"זכר רבים",
+   altPos:"שם עצם", altRoot:"ל-ב-ה", altBinyan:"פִּיעֵל", altTense:"הווה",
+   context:"פרפרים הלבנים שוב עפים לאור"},
+  {heb:"מטורף",   niqqud:"מְטֹרָף", fr:"Fou / dingue",
+   cat:"toar", pos:"שם תואר", root:"ט-ר-פ", binyan:"מְפֻעָל / שם תואר", tense:"זכר יחיד",
+   altPos:"פועל", altRoot:"ט-ר-ף", altBinyan:"פִּיעֵל", altTense:"הווה",
+   context:"שיגעון מטורף, אני מרים את הרף"},
+  {heb:"מתים",    niqqud:"מֵתִים", fr:"Morts (adjectif masculin pluriel)",
+   cat:"toar", pos:"שם תואר", root:"מ-ו-ת", binyan:"גזירת שם תואר מפועל", tense:"זכר רבים",
+   altPos:"פועל", altRoot:"מ-ת-ן", altBinyan:"פָּעַל", altTense:"עבר",
+   context:"רק דגים מתים שוחים עם הזרם"},
+
+  // ══ MILAT YAHAS ══
+  {heb:"בזכות",   niqqud:"בִּזְכוּת", fr:"Grâce à",
+   cat:"milat", pos:"מילת יחס", root:"ז-כ-ה", binyan:"מילת יחס מורכבת", tense:"לא רלוונטי",
+   altPos:"פועל", altRoot:"ז-כ-ר", altBinyan:"פָּעַל", altTense:"עבר",
+   context:"אני אוהב אותו רק בזכות דבר אחד"},
+  {heb:"עד ש",    niqqud:"עַד שֶׁ", fr:"Jusqu'à ce que",
+   cat:"milat", pos:"מילת יחס +接続詞", root:"ע-ד (יסוד)", binyan:"מילת יחס", tense:"לא רלוונטי",
+   altPos:"פועל", altRoot:"ע-ז-ר", altBinyan:"פִּיעֵל", altTense:"עתיד",
+   context:"אני טס למעלה עד שאגיע לפסגה"},
+  {heb:"עם",      niqqud:"עִם", fr:"Avec",
+   cat:"milat", pos:"מילת יחס", root:"ע-מ (יסוד)", binyan:"מילת יחס", tense:"לא רלוונטי",
+   altPos:"שם עצם", altRoot:"ע-מ-ד", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"רק דגים מתים שוחים עם הזרם"},
+  {heb:"קדימה",   niqqud:"קָדִימָה", fr:"En avant",
+   cat:"milat", pos:"תואר הפועל / כיוון", root:"ק-ד-מ", binyan:"מילת כיוון", tense:"לא רלוונטי",
+   altPos:"שם תואר", altRoot:"ק-ד-ק", altBinyan:"הִתְפַּעֵל", altTense:"הווה",
+   context:"ואני הולך קדימה, לא חוזר לאחור"},
+
+  // ══ BITUY ══
+  {heb:"מקום ראשון", niqqud:"מָקוֹם רִאשׁוֹן", fr:"Première place",
+   cat:"bituy", pos:"ביטוי שמני", root:"מ-ק-מ", binyan:"שם עצם + מספר סידורי", tense:"לא רלוונטי",
+   altPos:"פועל", altRoot:"ר-א-ש", altBinyan:"פִּיעֵל", altTense:"הווה",
+   context:"אני מקום ראשון"},
+  {heb:"שם פועל",  niqqud:"שֵׁם פוֹעַל", fr:"Infinitif verbal (terme grammatical)",
+   cat:"bituy", pos:"מונח דקדוקי", root:"פ-ע-ל", binyan:"שם עצם", tense:"לא רלוונטי",
+   altPos:"שם תואר", altRoot:"פ-ע-ה", altBinyan:"הִפְעִיל", altTense:"עתיד",
+   context:"(מונח דקדוקי — infinitif)"},
+  {heb:"אף פעם",   niqqud:"אַף פַּעַם", fr:"Jamais",
+   cat:"bituy", pos:"ביטוי שלילה / תואר הפועל", root:"פ-ע-מ", binyan:"ביטוי קבוע", tense:"לא רלוונטי",
+   altPos:"שם תואר", altRoot:"פ-ע-ל", altBinyan:"פָּעַל", altTense:"הווה",
+   context:"אני אף פעם לא נשבר"},
+  {heb:"סטייל",    niqqud:"סְטַיְיל", fr:"Style",
+   cat:"bituy", pos:"שם עצם (לועזי)", root:"(מילה לועזית)", binyan:"הלוואה מאנגלית", tense:"לא רלוונטי",
+   altPos:"שם תואר", altRoot:"ס-ט-ל", altBinyan:"פִּיעֵל", altTense:"הווה",
+   context:"יש לי סטייל, יש לי מוד, יש לי גרוב"},
+
+  // ══ SHORESH ══
+  {heb:"ש-ב-ר",    niqqud:"שׁ-בּ-ר", fr:"Racine : briser / casser",
+   cat:"shoresh", pos:"שורש", root:"ש-ב-ר", binyan:"3 אותיות", tense:"—",
+   altPos:"שורש", altRoot:"ש-ב-ל", altBinyan:"4 אותיות", altTense:"—",
+   context:"נשבר, שבירה, שבר"},
+  {heb:"ד-ב-ק",    niqqud:"ד-בּ-ק", fr:"Racine : coller / adhérer",
+   cat:"shoresh", pos:"שורש", root:"ד-ב-ק", binyan:"3 אותיות", tense:"—",
+   altPos:"שורש", altRoot:"ד-ב-ג", altBinyan:"4 אותיות", altTense:"—",
+   context:"הדבקתי, דבק, מדבקה"},
+  {heb:"ל-ח-מ",    niqqud:"ל-ח-מ", fr:"Racine : combattre / pain",
+   cat:"shoresh", pos:"שורש", root:"ל-ח-מ", binyan:"3 אותיות", tense:"—",
+   altPos:"שורש", altRoot:"ל-ח-ן", altBinyan:"2 אותיות", altTense:"—",
+   context:"מלחמה, לחם, נלחמים"},
+  {heb:"א-מ-נ",    niqqud:"א-מ-נ", fr:"Racine : croire / vrai",
+   cat:"shoresh", pos:"שורש", root:"א-מ-נ", binyan:"3 אותיות", tense:"—",
+   altPos:"שורש", altRoot:"א-מ-ר", altBinyan:"3 אותיות (אחר)", altTense:"—",
+   context:"להאמין, אמונה, אמת"},
+  {heb:"ק-ד-מ",    niqqud:"ק-ד-מ", fr:"Racine : avancer / précéder",
+   cat:"shoresh", pos:"שורש", root:"ק-ד-מ", binyan:"3 אותיות", tense:"—",
+   altPos:"שורש", altRoot:"ק-ד-ש", altBinyan:"3 אותיות (אחר)", altTense:"—",
+   context:"קדימה, קדם, מקדים"},
+];
+
+// ═══════════════════════════════════════════════════════════
+// SENTENCES for RECONSTITUER — פסוקים מהשיר
+// ═══════════════════════════════════════════════════════════
+const SENTENCES = [
+  {heb:"לא ציפור ולא מטוס",              fr:"Ni un oiseau ni un avion",                cat:"shem"},
+  {heb:"זה כלי טיס בלתי מאויש",          fr:"C'est un engin volant sans pilote",       cat:"shem"},
+  {heb:"רק דגים מתים שוחים עם הזרם",     fr:"Seuls les poissons morts nagent avec le courant", cat:"poel"},
+  {heb:"פרפרים הלבנים שוב עפים לאור",    fr:"Les papillons blancs volent à nouveau vers la lumière", cat:"poel"},
+  {heb:"נגמרה המלחמה ואין לנו ברירה",    fr:"La guerre est finie et on n'a pas le choix", cat:"shem"},
+  {heb:"ואני הולך קדימה לא חוזר לאחור",  fr:"Et moi j'avance, je ne reviens pas en arrière", cat:"milat"},
+  {heb:"אני טס למעלה עד שאגיע לפסגה",   fr:"Je vole vers le haut jusqu'à atteindre le sommet", cat:"poel"},
+  {heb:"ותמיד תישאר הצלקת בנשמה",        fr:"Et la cicatrice restera toujours dans l'âme", cat:"shem"},
+  {heb:"אני אף פעם לא נשבר",            fr:"Je ne me brise jamais",                   cat:"bituy"},
+  {heb:"את הלב שלי הדבקתי",              fr:"J'ai recollé mon cœur",                  cat:"poel"},
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const ROUND_VF=20, ROUND_RC=10;
+const STORAGE="morphoKtabam_hist";
+
+let selCats=new Set(CATS.map(c=>c.id));
+let curMode='vf';
+let gameHist=(()=>{try{return JSON.parse(localStorage.getItem(STORAGE))||[];}catch(e){return[];}})();
+function saveHist(){try{localStorage.setItem(STORAGE,JSON.stringify(gameHist));}catch(e){}}
+
+let vf={queue:[],score:0,total:0,streak:0,maxStreak:0,hist:[],cur:null,answering:false,claimField:null,claimIsTrue:false};
+let rc={queue:[],score:0,total:0,streak:0,maxStreak:0,hist:[],cur:null,placed:[],answering:false};
+let fl={queue:[],idx:0,flipped:false};
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function catMeta(id){return CATS.find(c=>c.id===id)||{label:"",fr:"",color:"#888"};}
+
+// ══ HOME ══
+function buildHomeGrid(){
+  const g=document.getElementById('home-cat-grid');g.innerHTML='';
+  CATS.forEach(c=>{
+    const n=DATA.filter(d=>d.cat===c.id).length;
+    const on=selCats.has(c.id);
+    const btn=document.createElement('button');
+    btn.className='cat-sel'+(on?' on':'');
+    btn.style.background=on?c.color+'15':'';
+    btn.style.borderColor=on?c.color:'';
+    btn.style.color=on?c.color:'';
+    btn.innerHTML=`<span class="cat-dot" style="background:${on?c.color:'#444'}"></span>
+      <span class="cat-name">${c.label}</span>
+      <span class="cat-count">${n}</span>`;
+    btn.onclick=()=>{
+      if(selCats.has(c.id)){if(selCats.size>1)selCats.delete(c.id);}
+      else selCats.add(c.id);
+      buildHomeGrid();
+    };
+    g.appendChild(btn);
+  });
+  const total=DATA.filter(d=>selCats.has(d.cat)).length;
+  document.getElementById('home-chip-count').textContent=`🎯 ${total} מילים`;
+  document.getElementById('start-btn').disabled=total<2;
+}
+
+function selectAllCats(all){
+  if(all)CATS.forEach(c=>selCats.add(c.id));
+  else{selCats.clear();selCats.add(CATS[0].id);}
+  buildHomeGrid();
+}
+
+function setMode(m){
+  curMode=m;
+  ['vf','recon','flash'].forEach(id=>{
+    document.getElementById('mode-'+id).classList.toggle('active',id===m);
+  });
+  const rules=document.getElementById('home-rules');
+  if(m==='vf') rules.innerHTML='<b>נכון/לא נכון:</b> מילה מהשיר מוצגת עם ניתוח מורפולוגי — אמת או שקר?';
+  else if(m==='recon') rules.innerHTML='<b>שחזור:</b> בנה מחדש את פסוקי השיר בסדר הנכון.';
+  else rules.innerHTML='<b>כרטיסי זיכרון:</b> עיין במילים ובניתוח שלהן. לחץ לגילוי.';
+}
+
+function goHome(){
+  speechSynthesis.cancel();
+  showScreen('s-home');
+  buildHomeGrid();
+  drawChart('chart-home','chart-empty-home');
+}
+
+function startGame(){
+  speechSynthesis.cancel();
+  if(curMode==='vf') startVF();
+  else if(curMode==='recon') startRC();
+  else startFlash();
+}
+
+// ══ VF — Morphological Claims ══
+// The "claim" shown is one randomly chosen field (pos, root, binyan, tense)
+// with 50% chance being true (correct value) or false (alternate value)
+const CLAIM_FIELDS=[
+  {field:'pos',    label:'חלק דיבר',   altField:'altPos'},
+  {field:'root',   label:'שורש',       altField:'altRoot'},
+  {field:'binyan', label:'בניין / סוג', altField:'altBinyan'},
+  {field:'tense',  label:'זמן / גוף',  altField:'altTense'},
+];
+
+function startVF(){
+  const pool=DATA.filter(d=>selCats.has(d.cat));
+  const queue=Array.from({length:ROUND_VF},()=>{
+    const item=pool[Math.floor(Math.random()*pool.length)];
+    // Pick a random field to test
+    const cf=CLAIM_FIELDS[Math.floor(Math.random()*CLAIM_FIELDS.length)];
+    const isTrue=Math.random()>.45;
+    const displayedVal=isTrue?item[cf.field]:item[cf.altField];
+    return {
+      heb:item.heb, niqqud:item.niqqud, fr:item.fr, cat:item.cat,
+      context:item.context||'',
+      pos:item.pos, root:item.root, binyan:item.binyan, tense:item.tense,
+      claimField:cf, claimValue:displayedVal, claimIsTrue:isTrue,
+      correctValues:{pos:item.pos, root:item.root, binyan:item.binyan, tense:item.tense}
+    };
+  });
+  vf={queue,score:0,total:0,streak:0,maxStreak:0,hist:[],cur:null,answering:false};
+  showScreen('s-vf');
+  nextVF();
+}
+
+function nextVF(){
+  vf.answering=false;
+  if(vf.total>=ROUND_VF){endAndBilan();return;}
+  vf.cur=vf.queue[vf.total];
+  const card=document.getElementById('vf-card');
+  card.className='q-card';void card.offsetWidth;card.className='q-card';
+  document.getElementById('vf-heb').textContent=vf.cur.heb;
+  document.getElementById('vf-niqqud').textContent=vf.cur.niqqud||'';
+  const ctx=document.getElementById('vf-context');
+  if(vf.cur.context){ctx.textContent='« '+vf.cur.context+' »';ctx.style.display='block';}
+  else ctx.style.display='none';
+  // Fill morpho table — show true values for all EXCEPT the tested field
+  document.getElementById('vf-pos').textContent=vf.cur.correctValues.pos;
+  document.getElementById('vf-root').textContent=vf.cur.correctValues.root;
+  document.getElementById('vf-binyan').textContent=vf.cur.correctValues.binyan;
+  document.getElementById('vf-tense').textContent=vf.cur.correctValues.tense;
+  // Highlight the claimed field and replace with claimed value
+  ['pos','root','binyan','tense'].forEach(f=>{
+    const el=document.getElementById('vf-'+f);
+    el.className='val';
+  });
+  const claimedEl=document.getElementById('vf-'+vf.cur.claimField.field);
+  claimedEl.textContent=vf.cur.claimValue;
+  claimedEl.className='val';
+  claimedEl.innerHTML=`<span class="morpho-claim">${vf.cur.claimValue}</span>`;
+
+  document.getElementById('vf-fr').textContent=vf.cur.fr;
+  document.getElementById('vf-fr').className='fr-proposed hidden';
+  document.getElementById('vf-tog').textContent='👁';
+  const fb=document.getElementById('vf-feedback');fb.style.display='none';fb.className='feedback';
+  const m=catMeta(vf.cur.cat);
+  const badge=document.getElementById('vf-badge');
+  badge.textContent=m.label+' · '+m.fr;badge.style.color=m.color;badge.style.borderColor=m.color;
+  document.getElementById('vf-btn-f').disabled=false;
+  document.getElementById('vf-btn-t').disabled=false;
+  document.getElementById('vf-qnum').textContent=`שאלה ${vf.total+1} / ${ROUND_VF}`;
+  document.getElementById('vf-prog').style.width=(vf.total/ROUND_VF*100)+'%';
+  document.getElementById('vf-num').textContent=`${vf.total} / ${ROUND_VF}`;
+  resetAudioBtn('vf-audio','vf-audio-icon');
+  speechSynthesis.cancel();
+  updateVFScore();
+}
+
+function answerVF(u){
+  if(vf.answering||!vf.cur)return;
+  vf.answering=true;
+  document.getElementById('vf-btn-f').disabled=true;
+  document.getElementById('vf-btn-t').disabled=true;
+  const ok=(u===vf.cur.claimIsTrue);
+  vf.score+=ok?1:0;vf.total+=1;
+  vf.streak=ok?vf.streak+1:0;vf.maxStreak=Math.max(vf.maxStreak,vf.streak);
+  vf.hist.push({heb:vf.cur.heb,fr:vf.cur.fr,correct:ok,
+    field:vf.cur.claimField.label,claimed:vf.cur.claimValue,
+    real:vf.cur.correctValues[vf.cur.claimField.field]});
+  updateVFScore();
+  const card=document.getElementById('vf-card');card.classList.add(ok?'correct':'wrong');
+  const claimedEl=document.getElementById('vf-'+vf.cur.claimField.field);
+  if(!ok&&claimedEl){
+    const span=claimedEl.querySelector('.morpho-claim');
+    if(span)span.className='morpho-claim wrong-c';
+  }
+  const fb=document.getElementById('vf-feedback');
+  fb.style.display='block';fb.className='feedback '+(ok?'correct':'wrong');
+  const realVal=vf.cur.correctValues[vf.cur.claimField.field];
+  fb.innerHTML=ok
+    ?`✓ נָכוֹן! ${vf.cur.claimField.label}: <b>${realVal}</b>`
+    :`✗ לֹא נָכוֹן — ${vf.cur.claimField.label} הנכון: <b>${realVal}</b>`;
+  document.getElementById('vf-prog').style.width=(vf.total/ROUND_VF*100)+'%';
+  document.getElementById('vf-num').textContent=`${vf.total} / ${ROUND_VF}`;
+  // Auto-reveal translation
+  document.getElementById('vf-fr').className='fr-proposed';
+  setTimeout(()=>nextVF(),2000);
+}
+
+function updateVFScore(){
+  const pct=vf.total>0?Math.round(vf.score/vf.total*100):0;
+  const el=document.getElementById('vf-pct');
+  el.textContent=vf.total>0?pct+'%':'—';
+  el.style.color=pct>=70?'var(--green)':pct>=50?'var(--orange)':'var(--red)';
+  document.getElementById('vf-streak').textContent='🔥 '+vf.streak;
+}
+
+// ══ RECONSTITUER ══
+function startRC(){
+  const catSents=SENTENCES.filter(s=>selCats.has(s.cat));
+  const pool=catSents.length>0?catSents:SENTENCES;
+  const queue=shuffle(pool).slice(0,Math.min(ROUND_RC,pool.length));
+  rc={queue,score:0,total:0,streak:0,maxStreak:0,hist:[],cur:null,placed:[],answering:false};
+  showScreen('s-recon');
+  nextRC();
+}
+
+function nextRC(){
+  rc.answering=false;
+  if(rc.total>=rc.queue.length){endAndBilan();return;}
+  rc.cur=rc.queue[rc.total];
+  rc.placed=[];
+  document.getElementById('rc-qnum').textContent=`ביטוי ${rc.total+1} / ${rc.queue.length}`;
+  document.getElementById('rc-fr-sent').textContent=rc.cur.fr;
+  const m=catMeta(rc.cur.cat);
+  document.getElementById('rc-badge').textContent=m.label+' · '+m.fr;
+  document.getElementById('rc-badge').style.color=m.color;
+  document.getElementById('rc-badge').style.borderColor=m.color;
+  const words=rc.cur.heb.split(' ').filter(w=>w.length>0);
+  const shuffled=shuffle([...words]);
+  const drop=document.getElementById('rc-drop');
+  drop.innerHTML='<span class="placeholder">לחץ על הרצועות ←</span>';
+  drop.className='recon-target';
+  const pool=document.getElementById('rc-pool');
+  pool.innerHTML='';
+  shuffled.forEach((w,i)=>{
+    const t=document.createElement('span');
+    t.className='tile';t.textContent=w;t.dataset.word=w;t.dataset.idx=i;
+    t.onclick=()=>placeTile(t);
+    pool.appendChild(t);
+  });
+  const reveal=document.getElementById('rc-answer-reveal');
+  reveal.textContent=rc.cur.heb;reveal.classList.add('hidden');
+  document.getElementById('rc-tog').textContent='👁';
+  const fb=document.getElementById('rc-feedback');fb.style.display='none';
+  document.getElementById('rc-check').disabled=false;
+  resetAudioBtn('rc-audio','rc-audio-icon');
+  speechSynthesis.cancel();
+  updateRCScore();
+}
+
+function placeTile(tile){
+  if(tile.classList.contains('used'))return;
+  const word=tile.dataset.word;
+  rc.placed.push({word,tile});
+  tile.classList.add('used');
+  const drop=document.getElementById('rc-drop');
+  const placeholder=drop.querySelector('.placeholder');
+  if(placeholder)placeholder.remove();
+  drop.classList.add('has-tiles');
+  const placed=document.createElement('span');
+  placed.className='tile placed';placed.textContent=word;
+  placed.onclick=()=>removeTile(placed,tile);
+  drop.appendChild(placed);
+}
+
+function removeTile(placed,original){
+  placed.remove();
+  original.classList.remove('used');
+  rc.placed=rc.placed.filter(p=>p.tile!==original);
+  const drop=document.getElementById('rc-drop');
+  if(drop.querySelectorAll('.tile').length===0){
+    drop.classList.remove('has-tiles');
+    drop.innerHTML='<span class="placeholder">לחץ על הרצועות ←</span>';
+  }
+}
+
+function checkRecon(){
+  const drop=document.getElementById('rc-drop');
+  const placed=Array.from(drop.querySelectorAll('.tile')).map(t=>t.textContent);
+  const answer=placed.join(' ');
+  const correct=rc.cur.heb;
+  const ok=(answer.trim()===correct.trim());
+  const fb=document.getElementById('rc-feedback');
+  fb.style.display='block';
+  fb.className='recon-feedback '+(ok?'ok':'ko');
+  fb.innerHTML=ok
+    ?`✓ מושלם! <b style="font-family:'Noto Serif Hebrew',serif">${correct}</b>`
+    :`✗ לא מדויק. הנכון: <b style="font-family:'Noto Serif Hebrew',serif;font-size:17px">${correct}</b>`;
+  rc.score+=ok?1:0;rc.total+=1;
+  rc.streak=ok?rc.streak+1:0;rc.maxStreak=Math.max(rc.maxStreak,rc.streak);
+  rc.hist.push({heb:rc.cur.heb,fr:rc.cur.fr,correct:ok});
+  document.getElementById('rc-check').disabled=true;
+  updateRCScore();
+  setTimeout(()=>nextRC(),2400);
+}
+
+function updateRCScore(){
+  const tot=rc.queue.length;
+  const pct=rc.total>0?Math.round(rc.score/rc.total*100):0;
+  const el=document.getElementById('rc-pct');
+  el.textContent=rc.total>0?pct+'%':'—';
+  el.style.color=pct>=70?'var(--green)':pct>=50?'var(--orange)':'var(--red)';
+  document.getElementById('rc-streak').textContent='🔥 '+rc.streak;
+  document.getElementById('rc-prog').style.width=(rc.total/tot*100)+'%';
+  document.getElementById('rc-num').textContent=`${rc.total} / ${tot}`;
+}
+
+// ══ FLASH ══
+function startFlash(){
+  const pool=DATA.filter(d=>selCats.has(d.cat));
+  fl={queue:shuffle(pool),idx:0,flipped:false};
+  showScreen('s-flash');
+  showFlash();
+}
+
+function showFlash(){
+  if(fl.queue.length===0)return;
+  const item=fl.queue[fl.idx];
+  fl.flipped=false;
+  const m=catMeta(item.cat);
+  document.getElementById('fl-badge').textContent=m.label+' · '+m.fr;
+  document.getElementById('fl-badge').style.color=m.color;
+  document.getElementById('fl-badge').style.borderColor=m.color;
+  document.getElementById('fl-heb').textContent=item.heb;
+  document.getElementById('fl-niqqud').textContent=item.niqqud||'';
+  document.getElementById('fl-morpho').style.display='none';
+  document.getElementById('fl-fr').style.display='none';
+  document.getElementById('fl-hint').style.display='block';
+  document.getElementById('fl-hint').textContent='לחץ לגילוי הניתוח · Cliquer pour révéler';
+  document.getElementById('fl-counter').textContent=`${fl.idx+1} / ${fl.queue.length}`;
+  // Pre-fill morpho
+  document.getElementById('fl-pos').textContent=item.pos;
+  document.getElementById('fl-root').textContent=item.root;
+  document.getElementById('fl-binyan').textContent=item.binyan;
+  document.getElementById('fl-tense').textContent=item.tense;
+  document.getElementById('fl-fr').textContent=item.fr;
+  resetAudioBtn('fl-audio','fl-audio-icon');
+  speechSynthesis.cancel();
+}
+
+function flipFlash(){
+  fl.flipped=!fl.flipped;
+  document.getElementById('fl-morpho').style.display=fl.flipped?'block':'none';
+  document.getElementById('fl-fr').style.display=fl.flipped?'block':'none';
+  document.getElementById('fl-hint').style.display=fl.flipped?'none':'block';
+}
+function flashNext(){fl.idx=(fl.idx+1)%fl.queue.length;showFlash();}
+function flashPrev(){fl.idx=(fl.idx-1+fl.queue.length)%fl.queue.length;showFlash();}
+
+// ══ AUDIO ══
+function speakHeb(mode){
+  let text='';
+  if(mode==='vf'&&vf.cur)text=vf.cur.heb;
+  else if(mode==='rc'&&rc.cur)text=rc.cur.heb;
+  else if(mode==='fl'&&fl.queue.length>0)text=fl.queue[fl.idx].heb;
+  if(!text)return;
+  const iconId=mode+'-audio-icon',btnId=mode+'-audio';
+  if(speechSynthesis.speaking){speechSynthesis.cancel();resetAudioBtn(btnId,iconId);return;}
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='he-IL';utt.rate=0.85;
+  const voices=speechSynthesis.getVoices();
+  const hv=voices.find(v=>v.lang==='he-IL')||voices.find(v=>v.lang.startsWith('he'));
+  if(hv)utt.voice=hv;
+  const btn=document.getElementById(btnId);
+  if(btn){btn.className='audio-btn playing';btn.querySelector('#'+iconId).textContent='⏹';}
+  utt.onend=()=>resetAudioBtn(btnId,iconId);
+  utt.onerror=()=>resetAudioBtn(btnId,iconId);
+  speechSynthesis.speak(utt);
+}
+function resetAudioBtn(btnId,iconId){
+  const btn=document.getElementById(btnId),icon=document.getElementById(iconId);
+  if(btn)btn.className='audio-btn';
+  if(icon)icon.textContent='🔊';
+}
+
+function toggleFr(zoneId,btnId){
+  const z=document.getElementById(zoneId),b=document.getElementById(btnId);
+  if(!z)return;
+  const hidden=z.classList.toggle('hidden');
+  if(b)b.textContent=hidden?'🙈':'👁';
+}
+
+// ══ BILAN ══
+function endAndBilan(){
+  speechSynthesis.cancel();
+  let score=0,total=0,maxStreak=0,mistakes=[];
+  if(curMode==='vf'){
+    score=vf.score;total=vf.total;maxStreak=vf.maxStreak;
+    mistakes=vf.hist.filter(h=>!h.correct).map(h=>({heb:h.heb,fr:h.fr}));
+  }else if(curMode==='recon'){
+    score=rc.score;total=rc.total;maxStreak=rc.maxStreak;
+    mistakes=rc.hist.filter(h=>!h.correct).map(h=>({heb:h.heb,fr:h.fr}));
+  }
+  if(total===0){goHome();return;}
+  const pct=Math.round(score/total*100);
+  gameHist.push({date:new Date().toISOString(),pct,mode:curMode});
+  if(gameHist.length>60)gameHist=gameHist.slice(-60);
+  saveHist();
+  showScreen('s-bilan');
+  document.getElementById('b-emoji').textContent=pct>=85?'🏆':pct>=65?'⭐':'💪';
+  document.getElementById('b-title').textContent=pct>=85?'מְצוּיָן! Excellent!':pct>=65?'טוֹב מְאוֹד! Très bien!':'הַמְשֵׁךְ לְהִתְאַמֵּן!';
+  document.getElementById('b-score').textContent=score;
+  document.getElementById('b-tot').textContent=total;
+  document.getElementById('b-pct').textContent=pct+'%';
+  document.getElementById('b-streak').textContent=maxStreak;
+  document.getElementById('b-err').textContent=total-score;
+  document.getElementById('b-games').textContent=gameHist.length;
+  const box=document.getElementById('b-mistakes');
+  if(mistakes.length>0){
+    box.style.display='block';
+    document.getElementById('b-mistakes-list').innerHTML=
+      mistakes.slice(0,12).map(m=>`
+        <div class="m-row">
+          <span class="m-heb">${m.heb}</span>
+          <span class="m-arr">→</span>
+          <span class="m-fr">${m.fr}</span>
+        </div>`).join('');
+  }else box.style.display='none';
+  setTimeout(()=>drawChart('chart-bilan',null),80);
+}
+
+// ══ CHART ══
+function drawChart(cid,emptyId){
+  const canvas=document.getElementById(cid);if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  if(!gameHist||gameHist.length===0){
+    canvas.style.display='none';
+    if(emptyId)document.getElementById(emptyId).style.display='block';
+    return;
+  }
+  if(emptyId)document.getElementById(emptyId).style.display='none';
+  canvas.style.display='block';
+  const W=canvas.parentElement.clientWidth-4,H=parseInt(canvas.getAttribute('height'))||120;
+  canvas.width=W;canvas.height=H;
+  const pad={t:12,r:16,b:24,l:32},gW=W-pad.l-pad.r,gH=H-pad.t-pad.b;
+  ctx.clearRect(0,0,W,H);
+  [0,50,100].forEach(v=>{
+    const y=pad.t+gH*(1-v/100);
+    ctx.strokeStyle='rgba(74,179,255,.08)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+gW,y);ctx.stroke();
+    ctx.fillStyle='rgba(144,144,184,.5)';ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText(v+'%',pad.l-4,y+3);
+  });
+  const pts=gameHist.slice(-20);
+  if(pts.length===1){
+    const x=pad.l+gW/2,y=pad.t+gH*(1-pts[0].pct/100);
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='#4ab3ff';ctx.fill();return;
+  }
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+gH);
+  grad.addColorStop(0,'rgba(74,179,255,.18)');grad.addColorStop(1,'rgba(74,179,255,.01)');
+  ctx.beginPath();
+  pts.forEach((d,i)=>{const x=pad.l+i/(pts.length-1)*gW,y=pad.t+gH*(1-d.pct/100);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.lineTo(pad.l+gW,pad.t+gH);ctx.lineTo(pad.l,pad.t+gH);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle='#4ab3ff';ctx.lineWidth=2;ctx.lineJoin='round';
+  pts.forEach((d,i)=>{const x=pad.l+i/(pts.length-1)*gW,y=pad.t+gH*(1-d.pct/100);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+  pts.forEach((d,i)=>{
+    const x=pad.l+i/(pts.length-1)*gW,y=pad.t+gH*(1-d.pct/100);
+    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);
+    ctx.fillStyle='#0a0a12';ctx.fill();ctx.strokeStyle='#4ab3ff';ctx.lineWidth=2;ctx.stroke();
+    if(i===pts.length-1){ctx.fillStyle='#f0c040';ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.fillText(d.pct+'%',x,y-9);}
+  });
+}
+
+// ══ SCREENS ══
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══ BOTTOM NAV ══
+function setBottomNav(id){
+  ['home','vf','recon','flash'].forEach(k=>{
+    const b=document.getElementById('bnav-'+k);
+    if(b)b.classList.toggle('active',k===id);
+  });
+}
+function setModeAndStart(m){
+  setBottomNav(m);curMode=m;startGame();
+}
+
+// ══ FLASH SWIPE ══
+(function(){
+  const card=document.getElementById('fl-card');
+  if(!card)return;
+  let startX=0,moved=false;
+  card.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;moved=false;},{passive:true});
+  card.addEventListener('touchmove',e=>{
+    const dx=e.touches[0].clientX-startX;
+    if(Math.abs(dx)>10){moved=true;card.style.transition='none';
+      card.style.transform=`translateX(${dx*.35}px) rotate(${dx*.015}deg)`;
+      card.style.opacity=String(1-Math.abs(dx)/500);}
+  },{passive:true});
+  card.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-startX;
+    card.style.transition='';card.style.transform='';card.style.opacity='';
+    if(moved&&Math.abs(dx)>55){if(dx>0)flashPrev();else flashNext();}
+    else if(!moved)flipFlash();
+    moved=false;
+  },{passive:true});
+})();
+
+// ══ INIT ══
+buildHomeGrid();
+drawChart('chart-home','chart-empty-home');
+if('speechSynthesis' in window){
+  speechSynthesis.getVoices();
+  speechSynthesis.addEventListener('voiceschanged',()=>speechSynthesis.getVoices());
+}
+</script>
+</body>
+</html>
